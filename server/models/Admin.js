@@ -25,7 +25,7 @@ const adminSchema = new mongoose.Schema({
 // Hash password before saving (increased salt rounds to 12 for enhanced security)
 adminSchema.pre('save', async function (next) {
   if (!this.isModified('password')) {
-    next();
+    return next();
   }
 
   const salt = await bcrypt.genSalt(12);
