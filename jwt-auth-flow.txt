@@ -1,0 +1,645 @@
+---
+File: server/middleware/auth.js
+---
+const jwt = require('jsonwebtoken');
+const Admin = require('../models/Admin.js');
+
+const protect = async (req, res, next) => {
+  let token;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'Not authorized to access this route' });
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Fetch user and verify admin role
+    const admin = await Admin.findById(decoded.id);
+    if (!admin || admin.role !== 'admin') {
+      return res.status(403).json({ success: false, message: 'Access denied. Admin role required.' });
+    }
+    
+    req.user = decoded;
+    req.admin = admin;
+    next();
+  } catch (error) {
+    return res.status(401).json({ success: false, message: 'Token is not valid' });
+  }
+};
+
+const generateToken = (id) => {
+  return jwt.sign({ id }, process.env.JWT_SECRET, {
+    expiresIn: process.env.JWT_EXPIRE || '7d',
+  });
+};
+
+module.exports = { protect, generateToken };
+
+---
+File: server/middleware/authMiddleware.js
+---
+const jwt = require('jsonwebtoken');
+
+const authMiddleware = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ message: 'No token provided' });
+  }
+
+  const token = authHeader.split(' ')[1];
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: 'Invalid token' });
+  }
+};
+
+module.exports = authMiddleware;
+
+---
+File: server/routes/auth.js
+---
+const express = require('express');
+const { loginAdmin, registerAdmin } = require('../controllers/authController.js');
+
+const router = express.Router();
+
+// Admin Login
+router.post('/login', loginAdmin);
+
+// Admin Registration
+router.post('/register', registerAdmin);
+
+module.exports = router;
+
+---
+File: server/controllers/authController.js
+---
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const Admin = require("../models/Admin");
+
+const loginAdmin = async (req, res) => {
+  try {
+
+    console.log("REQ BODY:", req.body);
+
+    const { email, password } = req.body;
+
+    console.log("EMAIL:", email);
+    console.log("PASSWORD:", password);
+
+    const admin = await Admin.findOne({ email });
+
+    console.log("ADMIN FOUND:", admin);
+
+    if (!admin) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+
+    console.log("PASSWORD MATCH:", isMatch);
+
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+
+    const token = jwt.sign(
+      { id: admin._id, role: "admin" },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(200).json({
+      success: true,
+      token,
+      admin: {
+        id: admin._id,
+        email: admin.email,
+      },
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
+  }
+};
+
+const registerAdmin = async (req, res) => {
+  try {
+
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide name, email and password",
+      });
+    }
+
+    const adminExists = await Admin.findOne({ email });
+
+    if (adminExists) {
+      return res.status(400).json({
+        success: false,
+        message: "Admin already exists with that email",
+      });
+    }
+
+    const admin = await Admin.create({
+      name,
+      email,
+      password,
+    });
+
+    const token = jwt.sign(
+      { id: admin._id, role: "admin" },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Admin registered successfully",
+      token,
+      user: {
+        id: admin._id,
+        email: admin.email,
+        name: admin.name,
+      },
+    });
+
+  } catch (error) {
+
+    console.log(error);
+
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
+  }
+};
+
+module.exports = {
+  loginAdmin,
+  registerAdmin,
+};
+
+---
+File: client/src/app/admin/pages/Settings.tsx
+---
+import { useState, useEffect } from 'react';
+import api from '../../../api/api';
+import { Button } from '../../components/ui/button';
+
+interface SettingsFormData {
+  studioName: string;
+  phone: string;
+  email: string;
+  address: string;
+  instagram: string;
+  facebook: string;
+  linkedin: string;
+}
+
+export default function Settings() {
+  const [formData, setFormData] = useState<SettingsFormData>({
+    studioName: '',
+    phone: '',
+    email: '',
+    address: '',
+    instagram: '',
+    facebook: '',
+    linkedin: '',
+  });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/settings');
+      if (response.data.settings) {
+        setFormData(response.data.settings);
+        setError('');
+      }
+    } catch (err) {
+      console.error('Error fetching settings:', err);
+      setError('Failed to load settings');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess(false);
+    setSaving(true);
+
+    try {
+      await api.put('/settings', formData);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 3000);
+    } catch (err: unknown) {
+      const axiosError = err as any;
+      setError(axiosError.response?.data?.message || 'Failed to save settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+      <div className="p-6 border-b">
+        <h2 className="text-xl font-semibold text-gray-900">Studio Settings</h2>
+        <p className="text-gray-600 text-sm mt-1">Manage your studio information and contact details</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="p-6">
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 text-red-700 rounded-lg">
+            {error}
+          </div>
+        )}
+        
+        {success && (
+          <div className="mb-4 p-4 bg-green-50 text-green-700 rounded-lg">
+            Settings saved successfully!
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          {/* Studio Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Studio Name
+            </label>
+            <input
+              type="text"
+              name="studioName"
+              value={formData.studioName}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Studio Name"
+            />
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Phone
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="+91 9618096194"
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Email
+            </label>
+            <input
+              type="email"
+              name="email"
+              value={formData.email}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="email@example.com"
+            />
+          </div>
+
+          {/* Instagram */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Instagram
+            </label>
+            <input
+              type="url"
+              name="instagram"
+              value={formData.instagram}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="https://instagram.com/username"
+            />
+          </div>
+
+          {/* Facebook */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Facebook
+            </label>
+            <input
+              type="url"
+              name="facebook"
+              value={formData.facebook}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="https://facebook.com/username"
+            />
+          </div>
+
+          {/* LinkedIn */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              LinkedIn
+            </label>
+            <input
+              type="url"
+              name="linkedin"
+              value={formData.linkedin}
+              onChange={handleInputChange}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="https://linkedin.com/company/studio"
+            />
+          </div>
+        </div>
+
+        {/* Address */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Address
+          </label>
+          <textarea
+            name="address"
+            value={formData.address}
+            onChange={handleInputChange}
+            rows={3}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Studio Address"
+          />
+        </div>
+
+        {/* Submit Button */}
+        <div className="flex gap-4">
+          <Button
+            type="submit"
+            disabled={saving}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save Settings'}
+          </Button>
+          <Button
+            type="button"
+            onClick={fetchSettings}
+            variant="outline"
+            className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+          >
+            Reset
+          </Button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+---
+File: client/src/app/admin/pages/Login.tsx
+---
+import { useState } from 'react';
+import { useNavigate } from 'react-router';
+import api from '../../../api/api';
+
+export default function Login() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await api.post('/auth/login', { email, password });
+      const token = response.data.token;
+      localStorage.setItem('adminToken', token);
+      navigate('/admin/dashboard');
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        const axiosError = err as any;
+        setError(axiosError.response?.data?.message || 'Login failed');
+      } else {
+        setError('Login failed. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-sm p-8">
+        <h1 className="text-2xl font-bold text-center mb-6">Admin Login</h1>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              id="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+              disabled={loading}
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+              Password
+            </label>
+            <input
+              type="password"
+              id="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+              disabled={loading}
+            />
+          </div>
+          {error && (
+            <p className="text-red-600 text-sm">{error}</p>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+---
+File: client/src/api/api.ts
+---
+import axios, { AxiosInstance } from 'axios';
+
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+
+const instance: AxiosInstance = axios.create({
+  baseURL: BASE_URL,
+});
+
+// Request interceptor to attach JWT token
+instance.interceptors.request.use((config) => {
+  const token = localStorage.getItem('adminToken');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Response interceptor to handle 401 globally
+instance.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('adminToken');
+      window.location.href = '/admin/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
+export default instance;
+
+---
+File: client/src/app/admin/components/ProtectedRoute.tsx
+---
+import { Navigate } from 'react-router';
+import { ReactNode } from 'react';
+
+interface ProtectedRouteProps {
+  children: ReactNode;
+}
+
+export default function ProtectedRoute({ children }: ProtectedRouteProps) {
+  const token = localStorage.getItem('adminToken');
+
+  if (!token) {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return <>{children}</>;
+}
+
+---
+File: client/src/app/routes.tsx
+---
+import { createBrowserRouter } from 'react-router';
+import { Layout } from './components/layout';
+import { HomePage } from './pages/home-page';
+import Projects from './pages/projects';
+import ProjectDetail from './pages/project-detail';
+import About from './pages/about';
+import Contact from './pages/contact';
+import { Link } from 'react-router';
+import Login from './admin/pages/Login';
+import Dashboard from './admin/pages/Dashboard';
+import ProjectsList from './admin/pages/ProjectsList';
+import AddProject from './admin/pages/AddProject';
+import EditProject from './admin/pages/EditProject';
+import AdminLayout from './admin/layout/AdminLayout';
+import ProtectedRoute from './admin/components/ProtectedRoute';
+
+function NotFound() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center">
+        <h1 className="text-4xl mb-4">404 - Page Not Found</h1>
+        <p className="text-foreground/70 mb-6">The page you&apos;re looking for doesn&apos;t exist.</p>
+        <Link to="/" className="text-primary hover:underline">Go back home</Link>
+      </div>
+    </div>
+  );
+}
+
+export const router = createBrowserRouter([
+  {
+    path: '/',
+    Component: Layout,
+    children: [
+      { index: true, Component: HomePage },
+      { path: 'projects', Component: Projects },
+      { path: 'projects/:id', Component: ProjectDetail },
+      { path: 'about', Component: About },
+      { path: 'contact', Component: Contact },
+      { path: '*', Component: NotFound },
+    ],
+  },
+  {
+    path: '/admin',
+    children: [
+      { index: true, element: <Login /> },
+      { path: 'login', element: <Login /> },
+      {
+        element: (
+          <ProtectedRoute>
+            <AdminLayout />
+          </ProtectedRoute>
+        ),
+        children: [
+          { path: 'dashboard', element: <Dashboard /> },
+          { path: 'projects', element: <ProjectsList /> },
+          { path: 'projects/new', element: <AddProject /> },
+          { path: 'projects/:id/edit', element: <EditProject /> },
+        ],
+      },
+    ],
+  },
+]);

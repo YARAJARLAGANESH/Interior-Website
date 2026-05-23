@@ -17,7 +17,7 @@ const protect = async (req, res, next) => {
     
     // Fetch user and verify admin role
     const admin = await Admin.findById(decoded.id);
-    if (!admin || admin.role !== 'admin') {
+    if (!admin) {
       return res.status(403).json({ success: false, message: 'Access denied. Admin role required.' });
     }
     
@@ -29,10 +29,29 @@ const protect = async (req, res, next) => {
   }
 };
 
+const authorize = (...roles) => {
+  return (req, res, next) => {
+
+    if (!roles.includes(req.admin.role)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied'
+      });
+    }
+
+    next();
+  };
+};
+
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || '7d',
   });
 };
 
-module.exports = { protect, generateToken };
+
+module.exports = {
+  protect,
+  generateToken,
+  authorize
+};
