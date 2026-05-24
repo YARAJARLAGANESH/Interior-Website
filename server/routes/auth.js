@@ -2,7 +2,8 @@ const express = require('express');
 
 const {
   loginAdmin,
-  registerAdmin
+  registerAdmin,
+  changePassword
 } = require('../controllers/authController.js');
 
 const {
@@ -15,7 +16,14 @@ const router = express.Router();
 // Admin Login
 router.post('/login', loginAdmin);
 
-// Only superadmin can create new admins
+// Change Password
+router.put(
+  '/change-password',
+  protect,
+  changePassword
+);
+
+// Only superadmin can create admins
 router.post(
   '/register',
   protect,

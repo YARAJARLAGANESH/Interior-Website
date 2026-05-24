@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router';
 import { ReactNode } from 'react';
-import { jwtDecode } from 'jwt-decode';
+import jwt_decode from 'jwt-decode';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -16,29 +16,22 @@ export default function ProtectedRoute({
 
   const token = localStorage.getItem('adminToken');
 
-  if (!token) {
-    return <Navigate to="/admin/login" replace />;
-  }
+  if (!token) return <Navigate to="/admin" replace />;
 
   try {
-
-    const decoded = jwtDecode<DecodedToken>(token);
-
+    const decoded = jwt_decode<DecodedToken>(token);
     const currentTime = Date.now() / 1000;
 
     if (decoded.exp < currentTime) {
-
       localStorage.removeItem('adminToken');
-
-      return <Navigate to="/admin/login" replace />;
+      localStorage.removeItem('adminData');
+      return <Navigate to="/admin" replace />;
     }
 
     return <>{children}</>;
-
   } catch (error) {
-
     localStorage.removeItem('adminToken');
-
-    return <Navigate to="/admin/login" replace />;
+    localStorage.removeItem('adminData');
+    return <Navigate to="/admin" replace />;
   }
 }

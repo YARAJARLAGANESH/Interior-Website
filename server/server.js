@@ -14,6 +14,7 @@ const { rateLimit } = require('express-rate-limit');
 const authRoutes = require('./routes/auth');
 const projectRoutes = require('./routes/projectRoutes');
 const settingsRoutes = require('./routes/settingsRoutes');
+const adminRoutes = require('./routes/admin');
 
 // Middleware files
 const { errorHandler } = require('./middleware/errorHandler');
@@ -65,6 +66,7 @@ app.use(
 app.use('/api/auth', authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/settings', settingsRoutes);
+app.use('/api/admins', adminRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

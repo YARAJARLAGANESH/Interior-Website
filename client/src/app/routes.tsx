@@ -11,6 +11,7 @@ import Dashboard from './admin/pages/Dashboard';
 import ProjectsList from './admin/pages/ProjectsList';
 import AddProject from './admin/pages/AddProject';
 import EditProject from './admin/pages/EditProject';
+import Settings from './admin/pages/Settings';
 import AdminLayout from './admin/layout/AdminLayout';
 import ProtectedRoute from './admin/components/ProtectedRoute';
 
@@ -52,6 +53,7 @@ export const router = createBrowserRouter([
         ),
         children: [
           { path: 'dashboard', element: <Dashboard /> },
+          { path: 'settings', element: <Settings /> },
           { path: 'projects', element: <ProjectsList /> },
           { path: 'projects/new', element: <AddProject /> },
           { path: 'projects/:id/edit', element: <EditProject /> },

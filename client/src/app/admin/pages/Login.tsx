@@ -17,6 +17,10 @@ export default function Login() {
     try {
       const response = await api.post('/auth/login', { email, password });
       const token = response.data.token;
+      localStorage.setItem(
+        'adminData',
+        JSON.stringify(response.data.admin)
+      );
       localStorage.setItem('adminToken', token);
       navigate('/admin/dashboard');
     } catch (err: unknown) {
