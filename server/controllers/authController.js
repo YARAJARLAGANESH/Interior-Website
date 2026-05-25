@@ -63,8 +63,6 @@ const loginAdmin = async (req, res) => {
 
   } catch (error) {
 
-    console.log(error);
-
     res.status(500).json({
       success: false,
       message: "Server error",
@@ -133,9 +131,6 @@ const registerAdmin = async (req, res) => {
     });
 
   } catch (error) {
-
-    console.log(error);
-
     res.status(500).json({
       success: false,
       message: error.message,
@@ -154,20 +149,6 @@ const changePassword = async (req, res) => {
       currentPassword,
       newPassword
     } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide all fields",
-      });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: "Password must be at least 6 characters",
-      });
-    }
 
     const admin = await Admin.findById(req.admin._id);
 
@@ -200,9 +181,6 @@ const changePassword = async (req, res) => {
     });
 
   } catch (error) {
-
-    console.log(error);
-
     res.status(500).json({
       success: false,
       message: "Server error",

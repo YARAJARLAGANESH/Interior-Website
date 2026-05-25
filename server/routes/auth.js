@@ -11,15 +11,22 @@ const {
   authorize
 } = require('../middleware/auth');
 
+const {
+  validateLogin,
+  validateRegisterAdmin,
+  validateChangePassword,
+} = require('../middleware/validators');
+
 const router = express.Router();
 
 // Admin Login
-router.post('/login', loginAdmin);
+router.post('/login', validateLogin, loginAdmin);
 
 // Change Password
 router.put(
   '/change-password',
   protect,
+  validateChangePassword,
   changePassword
 );
 
@@ -28,6 +35,7 @@ router.post(
   '/register',
   protect,
   authorize('superadmin'),
+  validateRegisterAdmin,
   registerAdmin
 );
 

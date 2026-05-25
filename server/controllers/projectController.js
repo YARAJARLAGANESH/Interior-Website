@@ -110,9 +110,6 @@ exports.getProjectById = async (req, res, next) => {
 // -----------------------------
 exports.createProject = async (req, res, next) => {
   try {
-    console.log("=== ENTERED CREATE ===");
-    console.log("BODY:", req.body);
-    console.log("FILES:", req.files);
     const { title, description, category, location } = req.body;
 
     const sanitizedTitle = sanitizeString(title, MAX_TITLE_LENGTH);
@@ -170,9 +167,6 @@ exports.createProject = async (req, res, next) => {
 // -----------------------------
 exports.updateProject = async (req, res, next) => {
   try {
-    console.log("=== ENTERED UPDATE ===");
-    console.log("BODY:", req.body);
-    console.log("FILES:", req.files);
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {

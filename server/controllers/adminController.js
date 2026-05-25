@@ -16,9 +16,6 @@ const getCurrentAdmin = async (req, res) => {
     });
 
   } catch (error) {
-
-    console.log(error);
-
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -43,9 +40,6 @@ const getAdmins = async (req, res) => {
     });
 
   } catch (error) {
-
-    console.log(error);
-
     res.status(500).json({
       success: false,
       message: 'Server error',
@@ -102,9 +96,6 @@ const deleteAdmin = async (req, res) => {
     });
 
   } catch (error) {
-
-    console.log(error);
-
     res.status(500).json({
       success: false,
       message: 'Server error',

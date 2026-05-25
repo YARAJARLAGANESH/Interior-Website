@@ -17,7 +17,6 @@ export default function ProjectsList() {
     try {
       setLoading(true);
       const response = await api.get('/projects');
-      console.log('ProjectsList API Response:', response.data);
       setProjects(response.data.projects || []);
       setError('');
     } catch (err) {
@@ -33,9 +32,8 @@ export default function ProjectsList() {
     try {
       setDeleting(id);
       await api.delete(`/projects/${id}`);
+      // Update state directly instead of refetching
       setProjects(projects.filter(p => p._id !== id));
-      // Refetch to ensure state is in sync
-      await fetchProjects();
     } catch (err) {
       setError('Failed to delete project');
     } finally {
@@ -98,6 +96,28 @@ export default function ProjectsList() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <Link
+                      to={`/admin/projects/${project._id}/edit`}
+                      className="text-blue-600 hover:underline mr-4"
+                    >
+                      Edit
+                    </Link>
+                    <button
+                      onClick={() => handleDelete(project._id)}
+                      disabled={deleting === project._id}
+                      className="text-red-600 hover:underline disabled:opacity-50"
+                    >
+                      {deleting === project._id ? 'Deleting...' : 'Delete'}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
                       to={`/admin/projects/${project._id}/edit`}
                       className="text-blue-600 hover:text-blue-900 mr-4"
                     >

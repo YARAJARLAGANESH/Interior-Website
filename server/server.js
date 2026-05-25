@@ -37,8 +37,9 @@ const app = express();
 app.use(helmet()); // Set HTTP headers for security
 app.use(mongoSanitize()); // Prevent MongoDB operator injection
 app.use(xssClean()); // Prevent XSS attacks
+app.use(hpp()); // Prevent HTTP Parameter Pollution
 
-// Rate limiting
+// Rate limiting - global
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 100, // Limit each IP to 100 requests per windowMs
@@ -48,14 +49,28 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Rate limiting - auth endpoints (stricter)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 login attempts per 15 minutes
+  message: 'Too many login attempts, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Don't count successful requests
+});
+
 // Body parser with size limit
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
 
-// CORS configuration - restricted to specific origins
+// CORS configuration - environment-based origins
+const allowedOrigins = (process.env.CORS_ORIGINS || 'http://localhost:5173,http://localhost:5174')
+  .split(',')
+  .map(origin => origin.trim());
+
 app.use(
   cors({
-    origin: ['http://localhost:5174', 'http://localhost:5173'],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -63,7 +78,7 @@ app.use(
 );
 
 // Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/admins', adminRoutes);
