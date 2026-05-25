@@ -21,11 +21,11 @@ const loginAdmin = async (req, res) => {
     const admin = await Admin.findOne({ email });
 
     if (!admin) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid credentials",
-      });
-    }
+  return res.status(400).json({
+    success: false,
+    message: "Admin account not found",
+  });
+}
 
     const isMatch = await bcrypt.compare(
       password,
@@ -33,11 +33,11 @@ const loginAdmin = async (req, res) => {
     );
 
     if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid credentials",
-      });
-    }
+  return res.status(400).json({
+    success: false,
+    message: "Wrong password",
+  });
+}
 
     const token = jwt.sign(
       {

@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router';
 import { ReactNode } from 'react';
-import jwt_decode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 
 interface ProtectedRouteProps {
   children: ReactNode;
@@ -19,7 +19,7 @@ export default function ProtectedRoute({
   if (!token) return <Navigate to="/admin" replace />;
 
   try {
-    const decoded = jwt_decode<DecodedToken>(token);
+    const decoded = jwtDecode<DecodedToken>(token);
     const currentTime = Date.now() / 1000;
 
     if (decoded.exp < currentTime) {

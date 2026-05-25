@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import api from '../../../api/api';
 import { Button } from '../../components/ui/button';
 
@@ -64,6 +65,14 @@ export default function Settings() {
       currentPassword: '',
       newPassword: '',
       confirmPassword: '',
+    });
+
+    const [showPasswords, setShowPasswords] =
+    useState({
+      current: false,
+      new: false,
+      confirm: false,
+      admin: false,
     });
 
   // =========================
@@ -385,9 +394,6 @@ export default function Settings() {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-5xl text-red-600">
-          SETTINGS PAGE UPDATED
-      </h1>
 
       {/* ========================= */}
       {/* STUDIO SETTINGS */}
@@ -511,44 +517,115 @@ export default function Settings() {
           className="space-y-4"
         >
 
-          <input
-            type="password"
-            placeholder="Current Password"
-            value={passwordData.currentPassword}
-            onChange={(e) =>
-              setPasswordData({
-                ...passwordData,
-                currentPassword: e.target.value,
-              })
-            }
-            className="w-full border rounded-lg px-4 py-2"
-          />
+          <div className="relative">
 
-          <input
-            type="password"
-            placeholder="New Password"
-            value={passwordData.newPassword}
-            onChange={(e) =>
-              setPasswordData({
-                ...passwordData,
-                newPassword: e.target.value,
-              })
-            }
-            className="w-full border rounded-lg px-4 py-2"
-          />
+  <input
+    type={
+      showPasswords.current
+        ? 'text'
+        : 'password'
+    }
+    placeholder="Current Password"
+    value={passwordData.currentPassword}
+    onChange={(e) =>
+      setPasswordData({
+        ...passwordData,
+        currentPassword: e.target.value,
+      })
+    }
+    className="w-full border rounded-lg px-4 py-2 pr-12"
+  />
 
-          <input
-            type="password"
-            placeholder="Confirm New Password"
-            value={passwordData.confirmPassword}
-            onChange={(e) =>
-              setPasswordData({
-                ...passwordData,
-                confirmPassword: e.target.value,
-              })
-            }
-            className="w-full border rounded-lg px-4 py-2"
-          />
+  <button
+    type="button"
+    onClick={() =>
+      setShowPasswords({
+        ...showPasswords,
+        current: !showPasswords.current,
+      })
+    }
+    className="absolute right-3 top-2.5 text-gray-500"
+  >
+    {showPasswords.current
+      ? <EyeOff size={18} />
+      : <Eye size={18} />
+    }
+  </button>
+
+</div>
+
+       <div className="relative">
+
+  <input
+    type={
+      showPasswords.new
+        ? 'text'
+        : 'password'
+    }
+    placeholder="New Password"
+    value={passwordData.newPassword}
+    onChange={(e) =>
+      setPasswordData({
+        ...passwordData,
+        newPassword: e.target.value,
+      })
+    }
+    className="w-full border rounded-lg px-4 py-2 pr-12"
+  />
+
+  <button
+    type="button"
+    onClick={() =>
+      setShowPasswords({
+        ...showPasswords,
+        new: !showPasswords.new,
+      })
+    }
+    className="absolute right-3 top-2.5 text-gray-500"
+  >
+    {showPasswords.new
+      ? <EyeOff size={18} />
+      : <Eye size={18} />
+    }
+  </button>
+
+</div>
+          <div className="relative">
+
+  <input
+    type={
+      showPasswords.confirm
+        ? 'text'
+        : 'password'
+    }
+    placeholder="Confirm New Password"
+    value={passwordData.confirmPassword}
+    onChange={(e) =>
+      setPasswordData({
+        ...passwordData,
+        confirmPassword: e.target.value,
+      })
+    }
+    className="w-full border rounded-lg px-4 py-2 pr-12"
+  />
+
+  <button
+    type="button"
+    onClick={() =>
+      setShowPasswords({
+        ...showPasswords,
+        confirm: !showPasswords.confirm,
+      })
+    }
+    className="absolute right-3 top-2.5 text-gray-500"
+  >
+    {showPasswords.confirm
+      ? <EyeOff size={18} />
+      : <Eye size={18} />
+    }
+  </button>
+
+</div>
 
           <Button type="submit">
             Change Password
@@ -604,18 +681,42 @@ export default function Settings() {
                 className="w-full border rounded-lg px-4 py-2"
               />
 
-              <input
-                type="password"
-                placeholder="Password"
-                value={newAdmin.password}
-                onChange={(e) =>
-                  setNewAdmin({
-                    ...newAdmin,
-                    password: e.target.value,
-                  })
-                }
-                className="w-full border rounded-lg px-4 py-2"
-              />
+              <div className="relative">
+
+  <input
+    type={
+      showPasswords.admin
+        ? 'text'
+        : 'password'
+    }
+    placeholder="Password"
+    value={newAdmin.password}
+    onChange={(e) =>
+      setNewAdmin({
+        ...newAdmin,
+        password: e.target.value,
+      })
+    }
+    className="w-full border rounded-lg px-4 py-2 pr-12"
+  />
+
+  <button
+    type="button"
+    onClick={() =>
+      setShowPasswords({
+        ...showPasswords,
+        admin: !showPasswords.admin,
+      })
+    }
+    className="absolute right-3 top-2.5 text-gray-500"
+  >
+    {showPasswords.admin
+      ? <EyeOff size={18} />
+      : <Eye size={18} />
+    }
+  </button>
+
+</div>
 
               <select
                 value={newAdmin.role}

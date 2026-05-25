@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
-import jwt_decode from 'jwt-decode';
+import { jwtDecode } from 'jwt-decode';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5003/api';
 
 const instance: AxiosInstance = axios.create({
   baseURL: BASE_URL,
@@ -12,7 +12,7 @@ instance.interceptors.request.use((config) => {
   const token = localStorage.getItem('adminToken');
   if (token) {
     try {
-      const decoded: any = jwt_decode(token);
+      const decoded: any = jwtDecode(token);
       // exp is in seconds
       if (decoded?.exp && Date.now() / 1000 > decoded.exp) {
         localStorage.removeItem('adminToken');
